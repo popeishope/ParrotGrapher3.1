@@ -13,7 +13,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TabHost;
+import android.widget.Toast;
 
 import com.parrot.arsdk.ARSDK;
 import com.parrot.arsdk.arcommands.ARCOMMANDS_ARDRONE3_PILOTINGSTATE_FLYINGSTATECHANGED_STATE_ENUM;
@@ -47,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements ARDeviceControlle
     private ARDiscoveryDevice device;
     private Button button1;
     private String TAG = getClass().getSimpleName();
+    private Integer batValue;
+    ProgressBar progressBar;
     static {ARSDK.loadSDKLibs();}
 
 
@@ -59,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements ARDeviceControlle
         initDiscoveryService();
         registerReceivers();
         button1 = findViewById(R.id.button);
+        progressBar = findViewById(R.id.progressBar);
+
 
         button1.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -128,6 +134,11 @@ public class MainActivity extends AppCompatActivity implements ARDeviceControlle
                     deviceController = new ARDeviceController (device);
                     Log.i(TAG, "Device Controller Created.");
                     deviceController.addListener(MainActivity.this);
+                    Toast toast = Toast.makeText(this, deviceList.get(0).getName() + " connected.", Toast.LENGTH_SHORT);
+                    toast.show();
+                    unregisterReceivers();
+                    closeServices();
+                    deviceController.start();
                 }
                 catch (ARControllerException e)
                 {
@@ -213,9 +224,9 @@ public class MainActivity extends AppCompatActivity implements ARDeviceControlle
 
                 if (args != null)
                 {
-                    Integer batValue = (Integer) args.get(ARFeatureCommon.ARCONTROLLER_DICTIONARY_KEY_COMMON_COMMONSTATE_BATTERYSTATECHANGED_PERCENT);
-
-                    // do what you want with the battery level
+                    batValue = (Integer) args.get(ARFeatureCommon.ARCONTROLLER_DICTIONARY_KEY_COMMON_COMMONSTATE_BATTERYSTATECHANGED_PERCENT);
+                    progressBar.setProgress(batValue);
+                    Log.i(TAG, "Battery level " + batValue + "%");
                 }
             }
         }
@@ -246,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements ARDeviceControlle
             catch (ARControllerException e)
             {
                 e.printStackTrace();
-               Log.e(TAG, e.getError().toString());
+               Log.e(TAG, e.getError().name());
             }
 
 
@@ -258,12 +269,44 @@ public class MainActivity extends AppCompatActivity implements ARDeviceControlle
     {
         if (ARCOMMANDS_ARDRONE3_PILOTINGSTATE_FLYINGSTATECHANGED_STATE_ENUM.ARCOMMANDS_ARDRONE3_PILOTINGSTATE_FLYINGSTATECHANGED_STATE_LANDED.equals(getPilotingState()))
         {
-            ARCONTROLLER_ERROR_ENUM error = deviceController.getFeatureARDrone3().sendPilotingTakeOff();
+            if (batValue != null) {
+                if (batValue > 25) {
+                    ARCONTROLLER_ERROR_ENUM error = deviceController.getFeatureARDrone3().sendPilotingTakeOff();
 
-            if (!error.equals(ARCONTROLLER_ERROR_ENUM.ARCONTROLLER_OK))
-            {
-                Log.e(TAG, "Error while sending take off: " + error);
+                    if (!error.equals(ARCONTROLLER_ERROR_ENUM.ARCONTROLLER_OK)) {
+                        Log.e(TAG, "Error while sending take off: " + error);
+                    } else {
+                        Toast toast = Toast.makeText(this, "Battery too low to take off: " + batValue + "%", Toast.LENGTH_SHORT);
+                        toast.show();
+                    }
+                }
             }
+        }
+    }
+
+    private void unregisterReceivers()
+    {
+        LocalBroadcastManager localBroadcastMgr = LocalBroadcastManager.getInstance(getApplicationContext());
+
+        localBroadcastMgr.unregisterReceiver(mArdiscoveryServicesDevicesListUpdatedReceiver);
+    }
+
+    private void closeServices()
+    {
+        Log.d(TAG, "closeServices ...");
+
+        if (mArdiscoveryService != null)
+        {
+            new Thread(new Runnable() {
+                @Override
+                public void run()
+                {
+                    mArdiscoveryService.stop();
+
+                    getApplicationContext().unbindService(mArdiscoveryServiceConnection);
+                    mArdiscoveryService = null;
+                }
+            }).start();
         }
     }
         }
