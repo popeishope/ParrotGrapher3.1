@@ -1,3 +1,14 @@
+day one today i have fully made the concept of my app and i have made my hello world start
+day two today i will be instaling the sdk into my app 
+day three i have setup the basics of the app and i have added texxt boxes and more buttons i belive i have discovered how to make it fly
+day 4 i was absent today i had an apointmetnt
+day 5 i i have started working on the sdk and have a few errors curently
+day 7 i have gotten a succesfull conection to the drone and i think i can make a brake threw soon to set it up to fly i cant wait
 5/17/19
 This week I got to....
-have fun.
+i had a succesuful drone take off 
+i got the drone to connect to the wifi and in to my app as well
+the nexxt day on friday i got the drone to have a succeful land function with the emergency landing button
+5/21/19
+this week the drone has succesfully moved around and conected i am now adding the math code in and will attempt to connect it to the drone 
+i also hope to succesfully have the drone fly in a direction this week 
